@@ -518,21 +518,26 @@ Func BuyEquipment()
 	Sleep(150)
 	PixelSearch(807, 142, 807, 142, 0xFFFFFF)
 	If Not @error Then
-		;Click on armor tab
+		; First buy upgrades (except magnets)
+		BuyUpgrade()
+		
+		; Then go to equipment tab and buy last item with max
 		MouseClick("left", 850, 690, 1, 0)
 		Sleep(50)
 		;Click Max buy
 		MouseClick("left", 1180, 636, 4, 0)
-		;Check if scrollbar is here if no max buy first item otherwise last item
-		PixelSearch(1257, 340, 1257, 340, 0x11AA23)
-		If Not @error Then
-			;buy sword
-			MouseClick("left", 1200, 200, 5, 0)
-		Else
-			;Click Bottom of scroll bar
-			MouseClick("left", 1253, 592, 5, 0)
-			Sleep(200)
-		EndIf
+		;Click Bottom of scroll bar
+		MouseClick("left", 1253, 592, 5, 0)
+		Sleep(200)
+		;Buy last item
+		MouseClick("left", 1200, 560, 5, 0)
+		;Click top of scroll bar
+		MouseClick("left", 1253, 170, 5, 0)
+		Sleep(200)
+		
+		; Finally buy 50 of every item in previous tier
+		;50 buy
+		MouseClick("left", 1100, 636, 5, 0)
 		Local $aLocation
 		While 1
 			;Check if there is any green buy boxes
@@ -540,21 +545,23 @@ Func BuyEquipment()
 			If @error Then
 				;Move mouse on ScrollBar
 				MouseMove(1253, 170, 0)
-				MouseWheel($MOUSE_WHEEL_UP, 1)
+				MouseWheel($MOUSE_WHEEL_DOWN, 1)
 				;Check gray scroll bar is there
-				PixelSearch(1253, 168, 1253, 168, 0xD6D6D6)
+				PixelSearch(1253, 597, 1253, 597, 0xD6D6D6)
 				If @error Then
 					ExitLoop
 				EndIf
 				Sleep(10)
 			Else
-				;Click on armor tab
-				MouseClick("left", 850, 690, 1, 0)
 				;Click Green buy box
 				MouseClick("left", $aLocation[0], $aLocation[1], 5, 0)
 			EndIf
 		WEnd
+		
+		; Check for upgrades one more time after buying equipment
 		BuyUpgrade()
+		
+		MouseClick("left", 1222, 677, 1, 0)
 	EndIf
 EndFunc   ;==>BuyEquipment
 
