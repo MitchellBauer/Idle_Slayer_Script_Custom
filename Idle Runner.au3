@@ -104,7 +104,7 @@ Func Main()
 	; Set Hotkey Bindings
 	HotKeySet("{Home}", "Pause")
 	HotKeySet("+{Esc}", "IdleClose")
-	HotKeySet("^+b", "BuyEquipment")
+	HotKeySet("^+b", "BuyUpgrade")
 	; Create Saving Directory
 	DirCreate("IdleRunnerLogs")
 	; Create GUI
@@ -239,7 +239,7 @@ Func Main()
 					WinActivate("Idle Slayer")
 					If WinGetTitle("[ACTIVE]") == "Idle Slayer" Then
 						SyncProcess(False)
-						BuyEquipment()
+						BuyUpgrade()
 						SyncProcess(True)
 					EndIf
 				EndIf
@@ -359,7 +359,7 @@ Func AutoAscend()
 		Sleep(300)
 		MouseClick("left", 550, 580, 1, 0)
 		Sleep(300)
-		BuyEquipment()
+		BuyUpgrade()
 	Else
 		;Click ascension button
 		MouseClick("left", 95, 90, 1, 0)
@@ -373,7 +373,7 @@ Func AutoAscend()
 			Sleep(300)
 			MouseClick("left", 550, 580, 1, 0)
 			Sleep(300)
-			BuyEquipment()
+			BuyUpgrade()
 		EndIf
 	EndIf
 EndFunc   ;==>AutoAscend
@@ -509,6 +509,64 @@ Func CirclePortals()
 EndFunc   ;==>CirclePortals
 
 Func BuyEquipment()
+	Local $iItemsBought = 0
+	PixelSearch(807, 142, 807, 142, 0xFFFFFF)
+	If Not @error Then
+		;Click on armor tab
+		MouseClick("left", 850, 690, 1, 0)
+		Sleep(50)
+		
+		;Click Max buy
+		MouseClick("left", 1180, 636, 4, 0)
+		;Click Bottom of scroll bar
+		MouseClick("left", 1253, 592, 5, 0)
+		Sleep(200)
+		
+		;Buy last item (most expensive)
+		PixelSearch(1160, 590, 1160, 170, 0x11AA23, 10)
+		If Not @error Then
+			MouseClick("left", 1200, 560, 5, 0)
+			$iItemsBought += 1
+		EndIf
+		
+		;"buy 50" for the rest of the items
+		MouseClick("left", 1100, 636, 5, 0)
+
+		;"buy 10" for the rest of the items
+		; MouseClick("left", 1033, 636, 5, 0)
+		
+		Local $aLocation
+		While 1
+			;Check if there is any green buy boxes
+			$aLocation = PixelSearch(1160, 590, 1160, 170, 0x11AA23, 10)
+			If @error Then
+				;Move mouse on ScrollBar
+				MouseMove(1253, 400, 0)
+				MouseWheel($MOUSE_WHEEL_UP, 1)
+				;Check gray scroll bar is there
+				PixelSearch(1253, 168, 1253, 168, 0xD6D6D6)
+				If @error Then
+					ExitLoop
+				EndIf
+				Sleep(10)
+			Else
+				;Click on armor tab to ensure we're in the right tab
+				MouseClick("left", 850, 690, 1, 0)
+				;Click Green buy box
+				MouseClick("left", $aLocation[0], $aLocation[1], 5, 0)
+				$iItemsBought += 1
+			EndIf
+		WEnd
+	EndIf
+	
+	If $iItemsBought >= 3 Then
+		BuyUpgrade()
+	Else
+		MouseClick("left", 1222, 677, 1, 0)
+	EndIf
+EndFunc   ;==>BuyEquipment
+
+Func BuyUpgrade()
 	WriteInLogs("AutoUpgrade Active")
 	;Close Shop window if open
 	MouseClick("left", 1244, 712, 1, 0)
@@ -516,56 +574,7 @@ Func BuyEquipment()
 	;Open shop window
 	MouseClick("left", 1163, 655, 1, 0)
 	Sleep(150)
-	PixelSearch(807, 142, 807, 142, 0xFFFFFF)
-	If Not @error Then
-		; First buy upgrades (except magnets)
-		BuyUpgrade()
-		
-		; Then go to equipment tab and buy last item with max
-		MouseClick("left", 850, 690, 1, 0)
-		Sleep(50)
-		;Click Max buy
-		MouseClick("left", 1180, 636, 4, 0)
-		;Click Bottom of scroll bar
-		MouseClick("left", 1253, 592, 5, 0)
-		Sleep(200)
-		;Buy last item
-		MouseClick("left", 1200, 560, 5, 0)
-		;Click top of scroll bar
-		MouseClick("left", 1253, 170, 5, 0)
-		Sleep(200)
-		
-		; Finally buy 50 of every item in previous tier
-		;50 buy
-		MouseClick("left", 1100, 636, 5, 0)
-		Local $aLocation
-		While 1
-			;Check if there is any green buy boxes
-			$aLocation = PixelSearch(1160, 590, 1160, 170, 0x11AA23, 10)
-			If @error Then
-				;Move mouse on ScrollBar
-				MouseMove(1253, 170, 0)
-				MouseWheel($MOUSE_WHEEL_DOWN, 1)
-				;Check gray scroll bar is there
-				PixelSearch(1253, 597, 1253, 597, 0xD6D6D6)
-				If @error Then
-					ExitLoop
-				EndIf
-				Sleep(10)
-			Else
-				;Click Green buy box
-				MouseClick("left", $aLocation[0], $aLocation[1], 5, 0)
-			EndIf
-		WEnd
-		
-		; Check for upgrades one more time after buying equipment
-		BuyUpgrade()
-		
-		MouseClick("left", 1222, 677, 1, 0)
-	EndIf
-EndFunc   ;==>BuyEquipment
-
-Func BuyUpgrade()
+	
 	; Navigate to upgrade and scroll up
 	MouseClick("left", 927, 683, 1, 0)
 	Sleep(150)
@@ -577,7 +586,6 @@ Func BuyUpgrade()
 		PixelSearch(1254, 167, 1254, 167, 0xD6D6D6)
 	Until @error
 	Sleep(400)
-	Local $bSomethingBought = False
 	Local $iY = 170
 	While 1
 		; Check if RandomBox Magnet is next upgrade
@@ -599,17 +607,12 @@ Func BuyUpgrade()
 		If @error Then
 			ExitLoop
 		Else
-			$bSomethingBought = True
 			; Click green buy
 			MouseClick("left", 1180, $iY, 1, 0)
 			Sleep(50)
 		EndIf
 	WEnd
-	If $bSomethingBought Then
-		BuyEquipment()
-	Else
-		MouseClick("left", 1222, 677, 1, 0)
-	EndIf
+	BuyEquipment()
 EndFunc   ;==>BuyUpgrade
 
 Func ClaimQuests()
