@@ -69,7 +69,7 @@
 #AutoIt3Wrapper_Res_File_Add=Resources\290.jpg, RT_RCDATA, NUM290,0
 #AutoIt3Wrapper_Res_File_Add=Resources\300.jpg, RT_RCDATA, NUM300,0
 #AutoIt3Wrapper_Run_Stop_OnError=y
-#AutoIt3Wrapper_Run_Au3Stripper=y
+#AutoIt3Wrapper_Run_Au3Stripper=n
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #comments-start
  AutoIt Version: 3.3.16.0
