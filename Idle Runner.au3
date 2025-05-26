@@ -1,12 +1,12 @@
 #NoTrayIcon
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=Resources\Icon.ico
-#AutoIt3Wrapper_Outfile=D:\Idle Macro\idleslayer\Idle Runner_x32.exe
-#AutoIt3Wrapper_Outfile_x64=D:\Idle Macro\idleslayer\Idle Runner_x64.exe
+#AutoIt3Wrapper_Outfile=Idle Runner_x32.exe
+#AutoIt3Wrapper_Outfile_x64=Idle Runner_x64.exe
 #AutoIt3Wrapper_Compression=0
 #AutoIt3Wrapper_Compile_Both=y
 #AutoIt3Wrapper_UseX64=y
-#AutoIt3Wrapper_Res_requestedExecutionLevel=None
+#AutoIt3Wrapper_Res_requestedExecutionLevel=asInvoker
 #AutoIt3Wrapper_Res_File_Add=Resources\Icon.jpg, RT_RCDATA, ICON,0
 #AutoIt3Wrapper_Res_File_Add=Resources\Welcome.jpg, RT_RCDATA, WELCOME,0
 #AutoIt3Wrapper_Res_File_Add=Resources\Instructions.jpg, RT_RCDATA, INSTRUCTION,0
@@ -69,7 +69,7 @@
 #AutoIt3Wrapper_Res_File_Add=Resources\290.jpg, RT_RCDATA, NUM290,0
 #AutoIt3Wrapper_Res_File_Add=Resources\300.jpg, RT_RCDATA, NUM300,0
 #AutoIt3Wrapper_Run_Stop_OnError=y
-#AutoIt3Wrapper_Run_Au3Stripper=y
+#AutoIt3Wrapper_Run_Au3Stripper=n
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #comments-start
  AutoIt Version: 3.3.16.0
@@ -104,7 +104,7 @@ Func Main()
 	; Set Hotkey Bindings
 	HotKeySet("{Home}", "Pause")
 	HotKeySet("+{Esc}", "IdleClose")
-	HotKeySet("^+b", "BuyEquipment")
+	HotKeySet("^+b", "BuyUpgrade")
 	; Create Saving Directory
 	DirCreate("IdleRunnerLogs")
 	; Create GUI
@@ -240,7 +240,7 @@ Func Main()
 					If WinGetTitle("[ACTIVE]") == "Idle Slayer" Then
 						SyncProcess(False)
 						$iAutoBuyLoopAmount = 0
-						BuyEquipment()
+						BuyUpgrade()
 						SyncProcess(True)
 					EndIf
 				EndIf
@@ -356,7 +356,7 @@ Func AutoAscend()
 		Sleep(300)
 		MouseClick("left", 550, 580, 1, 0)
 		Sleep(300)
-		BuyEquipment()
+		BuyUpgrade()
 	Else
 		;Click ascension button
 		MouseClick("left", 95, 90, 1, 0)
@@ -370,7 +370,7 @@ Func AutoAscend()
 			Sleep(300)
 			MouseClick("left", 550, 580, 1, 0)
 			Sleep(300)
-			BuyEquipment()
+			BuyUpgrade()
 		EndIf
 	EndIf
 EndFunc   ;==>AutoAscend
@@ -508,37 +508,39 @@ Func CirclePortals()
 EndFunc   ;==>CirclePortals
 
 Func BuyEquipment()
-	WriteInLogs("AutoUpgrade Active")
-	;Close Shop window if open
-	MouseClick("left", 1244, 712, 1, 0)
-	Sleep(150)
-	;Open shop window
-	MouseClick("left", 1163, 655, 1, 0)
-	Sleep(150)
+	Local $iItemsBought = 0
 	PixelSearch(807, 142, 807, 142, 0xFFFFFF)
 	If Not @error Then
 		;Click on armor tab
 		MouseClick("left", 850, 690, 1, 0)
 		Sleep(50)
+		
 		;Click Max buy
 		MouseClick("left", 1180, 636, 4, 0)
-		;Check if scrollbar is here if no max buy first item otherwise last item
-		PixelSearch(1257, 340, 1257, 340, 0x11AA23)
+		;Click Bottom of scroll bar
+		MouseClick("left", 1253, 592, 5, 0)
+		Sleep(200)
+		
+		;Buy last item (most expensive)
+		PixelSearch(1160, 590, 1160, 170, 0x11AA23, 10)
 		If Not @error Then
-			;buy sword
-			MouseClick("left", 1200, 200, 5, 0)
-		Else
-			;Click Bottom of scroll bar
-			MouseClick("left", 1253, 592, 5, 0)
-			Sleep(200)
+			MouseClick("left", 1200, 560, 5, 0)
+			$iItemsBought += 1
 		EndIf
+		
+		;"buy 50" for the rest of the items
+		MouseClick("left", 1100, 636, 5, 0)
+
+		;"buy 10" for the rest of the items
+		; MouseClick("left", 1033, 636, 5, 0)
+		
 		Local $aLocation
 		While 1
 			;Check if there is any green buy boxes
 			$aLocation = PixelSearch(1160, 590, 1160, 170, 0x11AA23, 10)
 			If @error Then
 				;Move mouse on ScrollBar
-				MouseMove(1253, 170, 0)
+				MouseMove(1253, 400, 0)
 				MouseWheel($MOUSE_WHEEL_UP, 1)
 				;Check gray scroll bar is there
 				PixelSearch(1253, 168, 1253, 168, 0xD6D6D6)
@@ -547,17 +549,31 @@ Func BuyEquipment()
 				EndIf
 				Sleep(10)
 			Else
-				;Click on armor tab
+				;Click on armor tab to ensure we're in the right tab
 				MouseClick("left", 850, 690, 1, 0)
 				;Click Green buy box
 				MouseClick("left", $aLocation[0], $aLocation[1], 5, 0)
+				$iItemsBought += 1
 			EndIf
 		WEnd
+	EndIf
+	
+	If $iItemsBought >= 3 Then
 		BuyUpgrade()
+	Else
+		MouseClick("left", 1222, 677, 1, 0)
 	EndIf
 EndFunc   ;==>BuyEquipment
 
 Func BuyUpgrade()
+	WriteInLogs("AutoUpgrade Active")
+	;Close Shop window if open
+	MouseClick("left", 1244, 712, 1, 0)
+	Sleep(150)
+	;Open shop window
+	MouseClick("left", 1163, 655, 1, 0)
+	Sleep(150)
+	
 	; Navigate to upgrade and scroll up
 	MouseClick("left", 927, 683, 1, 0)
 	Sleep(150)
@@ -569,7 +585,6 @@ Func BuyUpgrade()
 		PixelSearch(1254, 167, 1254, 167, 0xD6D6D6)
 	Until @error
 	Sleep(400)
-	Local $bSomethingBought = False
 	Local $iY = 170
 	While 1
 		; Check if RandomBox Magnet is next upgrade
@@ -591,18 +606,12 @@ Func BuyUpgrade()
 		If @error Then
 			ExitLoop
 		Else
-			$bSomethingBought = True
 			; Click green buy
 			MouseClick("left", 1180, $iY, 1, 0)
 			Sleep(50)
 		EndIf
 	WEnd
-	If $bSomethingBought And $iAutoBuyLoopAmount < 5 Then
-		$iAutoBuyLoopAmount += 1
-		BuyEquipment()
-	Else
-		MouseClick("left", 1222, 677, 1, 0)
-	EndIf
+	BuyEquipment()
 EndFunc   ;==>BuyUpgrade
 
 Func ClaimQuests()
