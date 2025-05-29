@@ -517,26 +517,67 @@ Func BuyEquipment()
 		
 		;Click Max buy
 		MouseClick("left", 1180, 636, 4, 0)
+		Sleep(100)
 		;Click Bottom of scroll bar
 		MouseClick("left", 1253, 592, 5, 0)
 		Sleep(200)
 		
-		;Buy last item (most expensive)
-		PixelSearch(1160, 590, 1160, 170, 0x11AA23, 10)
-		If Not @error Then
-			MouseClick("left", 1200, 560, 5, 0)
-			$iItemsBought += 1
-		EndIf
+		; Fix game UI bug: Click on last item to fix jumbled order after scrolling to bottom
+		MouseClick("left", 1180, 560, 1, 0)
+		Sleep(100)
+		WriteInLogs("Fixed item order by clicking last item")
+		
+		; Try to find first affordable item starting from bottom
+		Local $bFoundAffordableItem = False
+		Local $iScrollAttempts = 0
+		Local $iMaxScrollAttempts = 15 ; Prevent infinite loop
+		
+		While Not $bFoundAffordableItem And $iScrollAttempts < $iMaxScrollAttempts
+			; Search for green buy button in a wider area (like the original "buy 50" section does)
+			Local $aAffordableItem = PixelSearch(1150, 590, 1190, 170, 0x11AA23, 10)
+			If Not @error Then
+				; Found an affordable item, click on it
+				MouseClick("left", $aAffordableItem[0], $aAffordableItem[1], 1, 0)
+				$iItemsBought += 1
+				$bFoundAffordableItem = True
+				WriteInLogs("Bought max affordable equipment item at coords: " & $aAffordableItem[0] & "," & $aAffordableItem[1])
+				Sleep(100)
+				ExitLoop ; Exit immediately after buying one max item
+			Else
+				; No affordable item found in current view, scroll up a bit
+				MouseMove(1253, 400, 0)
+				MouseWheel($MOUSE_WHEEL_UP, 2)
+				Sleep(150)
+				$iScrollAttempts += 1
+				
+				; Check if we've reached the top of the scroll area
+				PixelSearch(1253, 168, 1253, 168, 0xD6D6D6)
+				If @error Then
+					; Reached top without finding affordable items
+					WriteInLogs("Reached top, no max-buyable items found")
+					ExitLoop
+				EndIf
+			EndIf
+		WEnd
+		
+		; Always scroll back to bottom before "buy 50" phase, regardless of whether we found an item
+		MouseClick("left", 1253, 592, 5, 0)
+		Sleep(200)
+		
+		; Fix order again after scrolling back to bottom
+		MouseClick("left", 1180, 560, 1, 0)
+		Sleep(100)
 		
 		;"buy 50" for the rest of the items
 		MouseClick("left", 1100, 636, 5, 0)
+		Sleep(50)
 
 		;"buy 10" for the rest of the items
 		; MouseClick("left", 1033, 636, 5, 0)
 		
 		Local $aLocation
 		While 1
-			;Check if there is any green buy boxes
+			;Check if there is any green buy boxes (using original coordinates that work)
 			$aLocation = PixelSearch(1160, 590, 1160, 170, 0x11AA23, 10)
 			If @error Then
 				;Move mouse on ScrollBar
@@ -569,29 +610,30 @@ Func BuyUpgrade()
 	WriteInLogs("AutoUpgrade Active")
 	;Close Shop window if open
 	MouseClick("left", 1244, 712, 1, 0)
-	Sleep(100)
+	Sleep(100) ; Reverted back to original
 	;Open shop window
 	MouseClick("left", 1163, 655, 1, 0)
-	Sleep(100)
+	Sleep(100) ; Reverted back to original
 	
 	; Navigate to upgrade and scroll up
 	MouseClick("left", 927, 683, 1, 0)
-	Sleep(100)
+	Sleep(100) ; Reverted back to original
 	; Top of scrollbar - single aggressive scroll to get to top
 	MouseMove(1254, 172, 0)
-	Sleep(50)
+	Sleep(50) ; Reverted back to original
 	
 	; Now do the detection loop to find exact top
 	Do
 		MouseWheel($MOUSE_WHEEL_UP, 20)
-		Sleep(50)
+		Sleep(50) ; Reverted back to original
 		PixelSearch(1254, 167, 1254, 167, 0xD6D6D6)
 	Until @error
-	Sleep(200)
+	Sleep(200) ; Reverted back to original
 	
 	; Always reset Y to starting position
 	Local $iY = 170
 	Local $iUpgradesBought = 0
+	Local $iFastClicks = 0 ; Counter for rapid clicking
 	
 	While 1
 		; Check if RandomBox Magnet is next upgrade
@@ -600,6 +642,7 @@ Func BuyUpgrade()
 			$iY += 96
 			ContinueLoop
 		EndIf
+		
 		; Check if RandomBox Magnet is next upgrade
 		PixelSearch(882, $iY, 909, $iY + 72, 0xE478FF)
 		If Not @error Then
@@ -607,36 +650,62 @@ Func BuyUpgrade()
 			ContinueLoop
 		EndIf
 		
-		;Electric worm
-		;PixelSearch(850, $iY, 850, $iY + 72, 0xF7A01E)
-		;If Not @error Then
-		;	$iY += 96
-		;EndIf
-
-
-		; Check for green buy button (original color) in the area where we expect it
-		Local $aGreenButton = PixelSearch(1150, $iY - 5, 1220, $iY + 10, 0x10A322, 9)
+		;~ ; Electric worm
+		;~ PixelSearch(850, $iY, 850, $iY + 72, 0xF7A01E)
+		;~ If Not @error Then
+		;~ 	$iY += 96
+		;~ 	ContinueLoop
+		;~ EndIf
+		
+		; Check for green buy button (original color) in a smaller, targeted area
+		Local $aGreenButton = PixelSearch(1175, $iY + 8, 1185, $iY + 12, 0x11A622, 3)
 		If Not @error Then
 			; Click green buy using found coordinates
 			MouseClick("left", $aGreenButton[0], $aGreenButton[1], 1, 0)
 			$iUpgradesBought += 1
-			Sleep(75) ; Faster sleep
+			$iFastClicks += 1
+			
+			; Dynamic sleep - faster for consecutive purchases
+			If $iFastClicks > 5 Then
+				Sleep(15) ; Very fast after 5 consecutive clicks
+			ElseIf $iFastClicks > 2 Then
+				Sleep(25) ; Medium speed after 2 consecutive clicks
+			Else
+				Sleep(40) ; Normal speed for first few clicks
+			EndIf
 			ContinueLoop
 		EndIf
 		
-		; Check for shadow/pressed green color in the area
-		Local $aShadowButton = PixelSearch(1150, $iY - 5, 1220, $iY + 10, 0x0005310A, 9)
+		; Check for shadow/pressed green color in the same targeted area
+		Local $aShadowButton = PixelSearch(1175, $iY + 8, 1185, $iY + 12, 0x0C7418, 3)
 		If Not @error Then
 			; Click shadow green using found coordinates
 			MouseClick("left", $aShadowButton[0], $aShadowButton[1], 1, 0)
 			$iUpgradesBought += 1
-			Sleep(75) ; Faster sleep
+			$iFastClicks += 1
+			
+			; Dynamic sleep - faster for consecutive purchases
+			If $iFastClicks > 5 Then
+				Sleep(15) ; Very fast after 5 consecutive clicks
+			ElseIf $iFastClicks > 2 Then
+				Sleep(25) ; Medium speed after 2 consecutive clicks
+			Else
+				Sleep(40) ; Normal speed for first few clicks
+			EndIf
 			ContinueLoop
 		EndIf
 		
-		; No green buttons found - exit
-		WriteInLogs("BuyUpgrade completed. Total upgrades bought: " & $iUpgradesBought)
-		ExitLoop
+		; Reset fast click counter when no purchase found
+		$iFastClicks = 0
+		
+		; Move to next upgrade position faster
+		$iY += 96
+		
+		; Check if we've scrolled past visible area, break to avoid infinite loop
+		If $iY > 600 Then
+			WriteInLogs("BuyUpgrade completed. Total upgrades bought: " & $iUpgradesBought)
+			ExitLoop
+		EndIf
 	WEnd
 	
 	BuyEquipment()
@@ -681,7 +750,7 @@ Func ClaimQuests()
 			If @error Then
 				ExitLoop
 			EndIf
-			Sleep(10)
+			Sleep(50)
 		Else
 			;Click Green buy box
 			WriteInLogs("Quest Claimed")
