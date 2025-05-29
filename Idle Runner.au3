@@ -569,48 +569,69 @@ Func BuyUpgrade()
 	WriteInLogs("AutoUpgrade Active")
 	;Close Shop window if open
 	MouseClick("left", 1244, 712, 1, 0)
-	Sleep(150)
+	Sleep(100)
 	;Open shop window
 	MouseClick("left", 1163, 655, 1, 0)
-	Sleep(150)
+	Sleep(100)
 	
 	; Navigate to upgrade and scroll up
 	MouseClick("left", 927, 683, 1, 0)
-	Sleep(150)
-	; Top of scrollbar
+	Sleep(100)
+	; Top of scrollbar - single aggressive scroll to get to top
 	MouseMove(1254, 172, 0)
+	Sleep(50)
+	
+	; Now do the detection loop to find exact top
 	Do
 		MouseWheel($MOUSE_WHEEL_UP, 20)
-		;Top of searchbar
+		Sleep(50)
 		PixelSearch(1254, 167, 1254, 167, 0xD6D6D6)
 	Until @error
-	Sleep(400)
+	Sleep(200)
+	
+	; Always reset Y to starting position
 	Local $iY = 170
+	Local $iUpgradesBought = 0
+	
 	While 1
 		; Check if RandomBox Magnet is next upgrade
 		PixelSearch(882, $iY, 909, $iY + 72, 0xF4B41B)
 		If Not @error Then
 			$iY += 96
+			ContinueLoop
 		EndIf
 		; Check if RandomBox Magnet is next upgrade
 		PixelSearch(882, $iY, 909, $iY + 72, 0xE478FF)
 		If Not @error Then
 			$iY += 96
+			ContinueLoop
 		EndIf
-		;Electric worm
-		;PixelSearch(850, $iY, 850, $iY + 72, 0xF7A01E)
-		;If Not @error Then
-		;	$iY += 96
-		;EndIf
-		PixelSearch(1180, $iY, 1180, $iY, 0x10A322, 9)
-		If @error Then
-			ExitLoop
-		Else
-			; Click green buy
-			MouseClick("left", 1180, $iY, 1, 0)
-			Sleep(50)
+		
+		; Check for green buy button (original color) in the area where we expect it
+		Local $aGreenButton = PixelSearch(1150, $iY - 5, 1220, $iY + 10, 0x10A322, 9)
+		If Not @error Then
+			; Click green buy using found coordinates
+			MouseClick("left", $aGreenButton[0], $aGreenButton[1], 1, 0)
+			$iUpgradesBought += 1
+			Sleep(75) ; Faster sleep
+			ContinueLoop
 		EndIf
+		
+		; Check for shadow/pressed green color in the area
+		Local $aShadowButton = PixelSearch(1150, $iY - 5, 1220, $iY + 10, 0x0005310A, 9)
+		If Not @error Then
+			; Click shadow green using found coordinates
+			MouseClick("left", $aShadowButton[0], $aShadowButton[1], 1, 0)
+			$iUpgradesBought += 1
+			Sleep(75) ; Faster sleep
+			ContinueLoop
+		EndIf
+		
+		; No green buttons found - exit
+		WriteInLogs("BuyUpgrade completed. Total upgrades bought: " & $iUpgradesBought)
+		ExitLoop
 	WEnd
+	
 	BuyEquipment()
 EndFunc   ;==>BuyUpgrade
 
