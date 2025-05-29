@@ -607,6 +607,13 @@ Func BuyUpgrade()
 			ContinueLoop
 		EndIf
 		
+		;Electric worm
+		;PixelSearch(850, $iY, 850, $iY + 72, 0xF7A01E)
+		;If Not @error Then
+		;	$iY += 96
+		;EndIf
+
+
 		; Check for green buy button (original color) in the area where we expect it
 		Local $aGreenButton = PixelSearch(1150, $iY - 5, 1220, $iY + 10, 0x10A322, 9)
 		If Not @error Then
