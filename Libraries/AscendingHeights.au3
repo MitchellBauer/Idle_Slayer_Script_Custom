@@ -48,7 +48,7 @@ Func AscendingHeightsPlay()
 				ExitLoop
 			EndIf
 
-			PixelSearch(540, 560, 540, 560, 0x00A400)
+			PixelSearch(500, 580, 510, 590, 0x00A400)
 			If Not @error Then
 				Sleep(2000)
 				MouseClick("left", 560, 570, 1, 0)
